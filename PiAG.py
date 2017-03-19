@@ -50,10 +50,10 @@ use_Pi_Cam =          1
 Pi_Cam = 2
 
 # if using the RPi.GPIO on the Pi set use_RPiGPIO = 1, not required if only using the DSLR GPIO O/P (photoon = 1).
-use_RPiGPIO =         1
+use_RPiGPIO =         0
 
 # to enable GPIO control of DSLR function set photoon = 1
-photoon =             1
+photoon =             0
 
 # if using the Seeed Raspberry PI relay v1.0 card set use_Seeed = 1
 # ensure you install smbus (sudo apt-get install python-smbus')
@@ -65,6 +65,11 @@ use_Seeed =           0
 # and enable SPI on your Pi
 use_PiFaceRP =        0
 
+# if using an external agent to drive the mount through pootle's interface set use_pif = 1
+use_pif = 1
+
+if use_pif:
+   import pootleguide
 
 #==================================================================================================
 # DISPLAY SETTINGS
@@ -186,6 +191,7 @@ if use_config > 0 and use_config < 4:
       with open(deffile + ".txt", "r") as file:
          inputx = file.readline()
       auto_g =              int(inputx[  0:  1])
+      pootleguide.setAutoGuide(auto_g == 1)
       nscale =              int(inputx[  1:  5])
       sscale =              int(inputx[  5:  9])
       escale =              int(inputx[  9: 13])
@@ -1028,6 +1034,8 @@ pmlock3 =      0
 
 while True:
    xycle += 1
+   if use_pif:
+      pootleguide.poll()
 
 # demo(set camera_connected = 0 to use)
    if not camera_connected:
@@ -1119,12 +1127,16 @@ while True:
          if use_RPiGPIO or use_Seeed or use_PiFaceRP:
             DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(0, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
             DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+         if use_pif:
+            pootleguide.stop(ver=True)
          keys2(Dkey[0],                          fs-1, 6,     b3x,        bw, 1, b3y, bh, 2, 2, 1)
          keys2(Dkey[3],                          fs-1, 6,     b3x,        bw, 1, b3y, bh, 4, 2, 1)
       if htime < t3:
          if use_RPiGPIO or use_Seeed or use_PiFaceRP:
             DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
             DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+         if use_pif:
+            pootleguide.stop(hor=True)
          keys2(Dkey[1],                          fs, 6,     b3x,        bw, 0, b3y, bh, 3, 2, 1)
          keys2(Dkey[2],                          fs, 6,     b3x,        bw, 2, b3y, bh, 3, 2, 1)
       if photo:
@@ -1173,6 +1185,8 @@ while True:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(0, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+            if use_pif:
+               pootleguide.stop(ver=True)
             keys2(Dkey[0],                       fs-1, 6,     b3x,        bw, 1, b3y, bh, 2, 2, 1)
             keys2(Dkey[3],                       fs-1, 6,     b3x,        bw, 1, b3y, bh, 4, 2, 1)
             rpistopNS = 1
@@ -1180,6 +1194,8 @@ while True:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+            if use_pif:
+               pootleguide.stop(hor=True)
             keys2(Dkey[1],                       fs, 6,     b3x,        bw, 0, b3y, bh, 3, 2, 1)
             keys2(Dkey[2],                       fs, 6,     b3x,        bw, 2, b3y, bh, 3, 2, 1)
             rpistopEW = 1
@@ -1212,7 +1228,6 @@ while True:
          catSurfacesmall = pygame.transform.scale(catSurfaceObj, (Disp_Width/2,240))
          windowSurfaceObj.blit(catSurfacesmall, (318, 238))
               
-         
       t3 = time.time()
       if vtime < t3 and not rpistopNS:
          if use_RPiGPIO or use_Seeed or use_PiFaceRP:
@@ -1456,7 +1471,6 @@ while True:
             windowSurfaceObj.blit(catSurfaceObj, (318, 238))
             
 
-
 # calculate corrections
    if auto_win:
       lcounter = 0
@@ -1491,6 +1505,10 @@ while True:
       acorrect = 1
       bcorrect = 1
 
+#   print("the correction might be %4f / %4f" %(acorrect,bcorrect)) 
+   if auto_g and use_pif:
+      pootleguide.corrections(acorrect,bcorrect)
+       
 # auto_c autocentre telescope
    if auto_c == 1:
       if ttot > 1:
@@ -1559,7 +1577,6 @@ while True:
       keys2("CLS", fs, 1, b2x, bw, 4, b2y, bh, 6, 1, 1)
       keys2("C", fs, 5, b2x, bw, 4, b2y, bh, 6, 1, 1)
 
-
    Vcorrt, Hcorrt, ewi, nsi = commands(nscale, escale, sscale, wscale, ewi, nsi, acorrect, bcorrect, mincor)
 
    if xycle >= Interval:
@@ -1610,24 +1627,32 @@ while True:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_ON(0, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+            if use_pif:
+               pootleguide.guidenudge('n')
             keys2(Dkey[0], fs-1, 1, b3x, bw, 1, b3y, bh, 2, 2, 1)
             keys2(Dkey[3], fs-1, 6, b3x, bw, 1, b3y, bh, 4, 2, 1)
          if hdir == "e" and hcor > 0:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_ON(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+            if use_pif:
+               pootleguide.guidenudge('e')
             keys2(Dkey[1], fs, 6, b3x, bw, 0, b3y, bh, 3, 2, 1)
             keys2(Dkey[2], fs, 1, b3x, bw, 2, b3y, bh, 3, 2, 1)
          if vdir == "s" and vcor > 0 and decS == 1:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(0, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_ON(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+               if use_pif:
+                  pootleguide.guidenudge('s')
             keys2(Dkey[0], fs-1, 6, b3x, bw, 1, b3y, bh, 2, 2, 1)
             keys2(Dkey[3], fs-1, 1, b3x, bw, 1, b3y, bh, 4, 2, 1)
          if hdir == "w" and hcor > 0:
             if use_RPiGPIO or use_Seeed or use_PiFaceRP:
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_ON(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+            if use_pif:
+               pootleguide.guidenudge('w')
             keys2(Dkey[1], fs, 1, b3x, bw, 0, b3y, bh, 3, 2, 1)
             keys2(Dkey[2], fs, 6, b3x, bw, 2, b3y, bh, 3, 2, 1)
          if serial_connected:
@@ -2066,6 +2091,8 @@ while True:
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+                if use_pif:
+                   pootleguide.closeagent()
                 keys2(Dkey[0], fs-1, 6, b3x, bw, 1, b3y, bh, 2, 2, 1)
                 keys2(Dkey[3], fs-1, 6, b3x, bw, 1, b3y, bh, 4, 2, 1)
                 keys2(Dkey[1], fs, 6, b3x, bw, 0, b3y, bh, 3, 2, 1)
@@ -2086,6 +2113,8 @@ while True:
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                    DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+                if use_pif:
+                   pootleguide.closeagent()
                 keys2(Dkey[0], fs-1, 6, b3x, bw, 1, b3y, bh, 2, 2, 1)
                 keys2(Dkey[3], fs-1, 6, b3x, bw, 1, b3y, bh, 4, 2, 1)
                 keys2(Dkey[1], fs, 6, b3x, bw, 0, b3y, bh, 3, 2, 1)
@@ -2355,6 +2384,7 @@ while True:
           elif z == 132:
              auto_c += 1
              auto_g =   1
+             pootleguide.setAutoGuide(True)
              auto_win = 1
              ocrop = crop
              if auto_c > 1:
@@ -2535,6 +2565,8 @@ while True:
                 time.sleep(mincor/100)
                 keys2(Dkey[3], fs-1, 6, b3x, bw, 1, b3y, bh, 4, 2, 1)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+             if use_pif:
+                pootleguide.move('d')
              change = 1
 
           elif z == 131 or kz == K_UP:
@@ -2552,6 +2584,8 @@ while True:
                 time.sleep(mincor/100)
                 keys2(Dkey[0], fs-1, 6, b3x, bw, 1, b3y, bh, 2, 2, 1)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(0, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+             if use_pif:
+                pootleguide.move('u')
              change = 1
 
           elif z == 122 or kz == K_LEFT:
@@ -2569,6 +2603,8 @@ while True:
                 time.sleep(mincor/100)
                 keys2(Dkey[1], fs, 6, b3x, bw, 0, b3y, bh, 3, 2, 1)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+             if use_pif:
+                pootleguide.move('l')
              change = 1
 
           elif z == 142 or kz == K_RIGHT:
@@ -2586,10 +2622,13 @@ while True:
                 time.sleep(mincor/100)
                 keys2(Dkey[2], fs, 6, b3x, bw, 2, b3y, bh, 3, 2, 1)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+             if use_pif:
+                pootleguide.move('r')
              change = 1
 
           elif z == 143 or kz == K_END:
              auto_g = 0
+             pootleguide.setAutoGuide(False)
              if serial_connected:
                 lx200(':Q#', ':Q#', decN, decS)
              if use_RPiGPIO or use_Seeed or use_PiFaceRP:
@@ -2597,6 +2636,8 @@ while True:
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(1, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(2, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
                 DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA = R_OFF(3, DEVICE_ADDRESS, DEVICE_REG_MODE1, DEVICE_REG_DATA)
+             if use_pif:
+                pootleguide.stop(ver=True, hor=True)
              keys2(Dkey[0], fs-1, 6, b3x, bw, 1, b3y, bh, 2, 2, 1)
              keys2(Dkey[3], fs-1, 6, b3x, bw, 1, b3y, bh, 4, 2, 1)
              keys2(Dkey[1], fs, 6, b3x, bw, 0, b3y, bh, 3, 2, 1)
@@ -2614,6 +2655,7 @@ while True:
           elif z == 1 or z == 11 or kz == K_a:
              auto_g = not auto_g
              if auto_g:
+                pootleguide.setAutoGuide(True)
                 start = time.time()
                 xcount = 0
                 ycount = 0
@@ -2625,6 +2667,7 @@ while True:
                    xhcor[count] = 0
                    count += 1
              else:
+                pootleguide.setAutoGuide(False)
                 log = 0
                 cls = 0
              change = 1
@@ -3263,6 +3306,7 @@ while True:
                 with open(deffile + ".txt", "r") as file:
                    inputx = file.readline()
                 auto_g =     int(inputx[ 0: 1])
+                pootleguide.setAutoGuide(auto_g == 1)
                 nscale =     int(inputx[ 1: 5])
                 sscale =     int(inputx[ 5: 9])
                 escale =     int(inputx[ 9:13])
